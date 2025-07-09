@@ -37,8 +37,6 @@ function parseChatMessage(text) {
 }
 
 app.post('/chat-listener', async (req, res) => {
-  res.status(200).json({ text: 'Processing...' });
-
   try {
     const message = req.body.message?.text || '';
     const row = parseChatMessage(message);
@@ -53,11 +51,19 @@ app.post('/chat-listener', async (req, res) => {
       requestBody: { values: [row] },
     });
 
+    res.json({
+      text: "Data written to sheet successfully!",
+    });
+
   } catch (err) {
     console.error('Error appending to sheet:', err);
+    res.json({
+      text: "Failed to write data to sheet.",
+    });
   }
 });
 
+
 app.listen(3000, () => {
-  console.log('✅ Server running on http://localhost:3000');
+  console.log('Server running on http://localhost:3000');
 });
