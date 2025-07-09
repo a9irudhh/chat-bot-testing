@@ -15,7 +15,7 @@ __pycache__/
 # Environment variables
 .env
 .env.*
-*.json
+scientific-elf-465409-j3-0977bd58f665.json
 
 # OS generated files
 .DS_Store
