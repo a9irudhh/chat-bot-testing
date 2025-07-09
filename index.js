@@ -37,6 +37,8 @@ function parseChatMessage(text) {
 }
 
 app.post('/chat-listener', async (req, res) => {
+  res.status(200).send();
+
   try {
     const message = req.body.message?.text || '';
     const row = parseChatMessage(message);
@@ -48,15 +50,10 @@ app.post('/chat-listener', async (req, res) => {
       spreadsheetId: SPREADSHEET_ID,
       range: `${SHEET_NAME}!A1:C1`,
       valueInputOption: 'RAW',
-      requestBody: {
-        values: [row],
-      },
+      requestBody: { values: [row] },
     });
-
-    res.send({ text: 'Row added to sheet!' });
   } catch (err) {
     console.error(err);
-    res.status(500).send({ error: 'Something went wrong' });
   }
 });
 
