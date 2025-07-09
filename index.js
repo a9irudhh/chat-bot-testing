@@ -37,7 +37,7 @@ function parseChatMessage(text) {
 }
 
 app.post('/chat-listener', async (req, res) => {
-  res.status(200).send();
+  res.status(200).json({ text: 'Processing...' });
 
   try {
     const message = req.body.message?.text || '';
@@ -52,8 +52,9 @@ app.post('/chat-listener', async (req, res) => {
       valueInputOption: 'RAW',
       requestBody: { values: [row] },
     });
+
   } catch (err) {
-    console.error(err);
+    console.error('Error appending to sheet:', err);
   }
 });
 
