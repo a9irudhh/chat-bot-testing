@@ -37,6 +37,8 @@ function parseChatMessage(text) {
 }
 
 app.post('/chat-listener', async (req, res) => {
+
+  res.status(200).end();
   try {
     const message = req.body.message?.text || '';
     const row = parseChatMessage(message);
@@ -50,16 +52,8 @@ app.post('/chat-listener', async (req, res) => {
       valueInputOption: 'RAW',
       requestBody: { values: [row] },
     });
-
-    res.json({
-      text: "Data written to sheet successfully!",
-    });
-
   } catch (err) {
     console.error('Error appending to sheet:', err);
-    res.json({
-      text: "Failed to write data to sheet.",
-    });
   }
 });
 
