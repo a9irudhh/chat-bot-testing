@@ -4,16 +4,9 @@ const bodyParser = require('body-parser');
 const fs = require('fs');
 const path = require('path');
 const { google } = require('googleapis');
+
 const app = express();
 app.use(bodyParser.json());
-
-
-const PORT = process.env.PORT || 3000;
-
-app.listen(PORT, () => {
-  console.log(`Server is running on port ${PORT}`);
-});
-
 
 const creds = JSON.parse(fs.readFileSync(path.resolve(process.env.GOOGLE_APPLICATION_CREDENTIALS), 'utf-8'));
 const auth = new google.auth.GoogleAuth({
@@ -29,28 +22,33 @@ function parseChatMessage(text) {
   for (let i = 0; i < lines.length; i += 2) {
     data[lines[i]] = lines[i + 1] || '';
   }
-  return [data['Key'], data['Agent Name'], data['Reason for retraining']];
+  return [
+    data["Key"],
+    data["Agent Name"],
+    data["Reason for retraining"]
+  ];
 }
 
-app.post('/added-to-space', (req, res) => {
+const router = express.Router();
+
+router.post('/added-to-space', (req, res) => {
   const event = req.body;
   return res.json({
     text: `Hi! Thanks for adding me to ${event.space.displayName || 'this space'}.`
   });
 });
 
-app.post('/removed-from-space', (req, res) => {
+router.post('/removed-from-space', (req, res) => {
   console.log(`Removed from space: ${req.body.space.name}`);
   return res.status(200).end();
 });
 
-app.post('/message', async (req, res) => {
-  const event = req.body;
+router.post('/message', async (req, res) => {
   res.status(200).end();
   try {
-    const row = parseChatMessage(event.message.text);
-    const client = await auth.getClient();
-    const sheets = google.sheets({ version: 'v4', auth: client });
+    const row = parseChatMessage(req.body.message.text);
+    const sheetsClient = await auth.getClient();
+    const sheets = google.sheets({ version: 'v4', auth: sheetsClient });
     await sheets.spreadsheets.values.append({
       spreadsheetId: SPREADSHEET_ID,
       range: `${SHEET}!A1:C1`,
@@ -63,24 +61,17 @@ app.post('/message', async (req, res) => {
   }
 });
 
-app.post('/command', (req, res) => {
-  const event = req.body;
-  const cmd = event.appCommand?.commandId;
-  let reply = 'Hmm, not sure what that means!';
-  if (cmd === 'about' || cmd === '/about') {
-    reply = 'I help log retraining requests automatically into Sheets!';
-  }
+router.post('/command', (req, res) => {
+  const cmd = req.body.appCommand?.commandId || '';
+  const reply = cmd === 'about'
+    ? 'I can log retraining requests into Sheets automatically!'
+    : "Sorry, I didn't recognize that command.";
   return res.json({ text: reply });
 });
 
-app.post('/chat-listener', (req, res) => {
-  const evt = req.body.type;
-  if (evt === 'ADDED_TO_SPACE') return app.handle(req, res, '/added-to-space');
-  if (evt === 'REMOVED_FROM_SPACE') return app.handle(req, res, '/removed-from-space');
-  if (evt === 'MESSAGE') return app.handle(req, res, '/message');
-  if (evt === 'APP_COMMAND') return app.handle(req, res, '/command');
-  return res.status(200).end(); 
-}
-);
+app.use('/chat-listener', router);
 
+app.post('/chat-listener/*', (req, res) => res.status(404).end());
 
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => console.log(`Server is running on port ${PORT}`));
