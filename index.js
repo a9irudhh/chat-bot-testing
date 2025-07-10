@@ -37,24 +37,35 @@ function parseChatMessage(text) {
 }
 
 app.post('/chat-listener', async (req, res) => {
+  const event = req.body;
+  console.log("Chat event received:", event.type);
 
-  res.status(200).end();
-  try {
-    const message = req.body.message?.text || '';
-    const row = parseChatMessage(message);
-
-    const client = await auth.getClient();
-    const sheets = google.sheets({ version: 'v4', auth: client });
-
-    await sheets.spreadsheets.values.append({
-      spreadsheetId: SPREADSHEET_ID,
-      range: `${SHEET_NAME}!A1:C1`,
-      valueInputOption: 'RAW',
-      requestBody: { values: [row] },
-    });
-  } catch (err) {
-    console.error('Error appending to sheet:', err);
+  if (event.type === 'ADDED_TO_SPACE') {
+    return res.json({ text: `Thanks for adding me to ${event.space.displayName || 'this chat'}!` });
   }
+
+  if (event.type === 'MESSAGE') {
+    res.json({ text: 'Processing...' });
+
+    try {
+      const message = event.message.text;
+      const row = parseChatMessage(message);
+      const client = await auth.getClient();
+      const sheets = google.sheets({ version: 'v4', auth: client });
+      await sheets.spreadsheets.values.append({
+        spreadsheetId: SPREADSHEET_ID,
+        range: `${SHEET_NAME}!A1:C1`,
+        valueInputOption: 'RAW',
+        requestBody: { values: [row] },
+      });
+    } catch (err) {
+      console.error('Failed to append row:', err);
+    }
+
+    return;
+  }
+
+  res.json({ text: '' });
 });
 
 
